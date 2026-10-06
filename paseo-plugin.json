@@ -1,0 +1,7 @@
+{
+  "id": "omo-models",
+  "description": "Edit ~/.omo/omo.jsonc agent and category model routing from the Paseo UI",
+  "requirements": {
+    "paseo": ">=0.10.3"
+  }
+}
