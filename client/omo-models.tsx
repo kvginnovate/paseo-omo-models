@@ -10,7 +10,7 @@ import {
 } from "@getpaseo/plugin/client/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useMemo } from "react";
-import { Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import {
   omoApplyRpc,
   omoStateRpc,
@@ -54,9 +54,9 @@ export function OmoModelsScreen({ theme, layout }: PluginSurfaceProps) {
     },
   });
 
-  // The settings frame owns scrolling, so this container must not claim flex.
   const styles = useMemo(
     () => ({
+      scroll: { flex: 1, backgroundColor: theme.colors.surface0 },
       screen: {
         gap: layout.compact ? 12 : 16,
         padding: layout.compact ? 16 : 24,
@@ -72,15 +72,15 @@ export function OmoModelsScreen({ theme, layout }: PluginSurfaceProps) {
 
   if (query.isPending) {
     return (
-      <View style={styles.screen}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
         <Text style={styles.path}>Reading omo.jsonc…</Text>
-      </View>
+      </ScrollView>
     );
   }
 
   if (query.isError || !state) {
     return (
-      <View style={styles.screen}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
         <Text style={styles.error}>
           {query.error instanceof Error ? query.error.message : "Could not read omo.jsonc"}
         </Text>
@@ -93,7 +93,7 @@ export function OmoModelsScreen({ theme, layout }: PluginSurfaceProps) {
             />
           </SettingsCard>
         </SettingsSection>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -113,7 +113,7 @@ export function OmoModelsScreen({ theme, layout }: PluginSurfaceProps) {
     });
 
   return (
-    <View style={styles.screen}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
       <View style={{ gap: 4 }}>
         <Text style={styles.title}>omo.jsonc models</Text>
         <Text style={styles.path}>
@@ -232,6 +232,6 @@ export function OmoModelsScreen({ theme, layout }: PluginSurfaceProps) {
           />
         </SettingsCard>
       </SettingsSection>
-    </View>
+    </ScrollView>
   );
 }
