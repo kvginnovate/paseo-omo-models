@@ -63,8 +63,8 @@ export const omoApplyRpc = defineRpc({
   input: z.object({
     /** "" for the root document, otherwise the raw section key. */
     section: z.string(),
-    kind: z.union([roleKindSchema, z.literal("model_profile")]),
-    /** Role name; ignored for `model_profile`. */
+    kind: z.union([roleKindSchema, z.literal("model_profile"), z.literal("all")]),
+    /** Role name; ignored for `model_profile` and `all`. */
     name: z.string(),
     model: z.string().nullable(),
     reasoning: z.string().nullable(),

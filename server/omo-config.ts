@@ -199,6 +199,34 @@ export async function applyEdit(input: OmoApplyInput): Promise<ApplyResult> {
     const result = setMemberValue(next, sectionPath, "model_profile", JSON.stringify(input.model));
     next = result.text;
     changed = result.changed;
+  } else if (input.kind === "all") {
+    if (input.model === null && input.reasoning === null)
+      throw new Error(`kind "all" requires a model, a reasoning, or both`);
+    const sectionRoot = objectAt(parseJsonc(next), sectionPath);
+    if (!sectionRoot) throw new Error(`No section at ${sectionPath.join(".") || "<root>"}`);
+    const roleNames = [
+      ...readRoles(sectionRoot, "agent"),
+      ...readRoles(sectionRoot, "category"),
+    ];
+    for (const role of roleNames) {
+      const group = role.kind === "agent" ? "agents" : "categories";
+      const target = [...sectionPath, group, role.name];
+      if (input.model !== null) {
+        const result = setMemberValue(next, target, "model", JSON.stringify(input.model));
+        next = result.text;
+        changed = changed || result.changed;
+      }
+      if (input.reasoning !== null) {
+        const reasoningResult = setMemberValue(
+          next,
+          target,
+          "reasoning",
+          JSON.stringify(input.reasoning),
+        );
+        next = reasoningResult.text;
+        changed = changed || reasoningResult.changed;
+      }
+    }
   } else {
     const group = input.kind === "agent" ? "agents" : "categories";
     const target = [...sectionPath, group, input.name];

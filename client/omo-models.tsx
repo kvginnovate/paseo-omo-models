@@ -28,7 +28,7 @@ const MATCH_LIMIT = 40;
 interface EditingTarget {
   section: string;
   sectionLabel: string;
-  kind: OmoRole["kind"] | "model_profile";
+  kind: OmoRole["kind"] | "model_profile" | "all";
   name: string;
 }
 
@@ -115,7 +115,7 @@ export function OmoModelsScreen({ theme, layout }: PluginSurfaceProps) {
   }
 
   const roleFor = (target: EditingTarget): OmoRole | null =>
-    target.kind === "model_profile"
+    target.kind === "model_profile" || target.kind === "all"
       ? null
       : (state.sections
           .find((section) => section.id === target.section)
@@ -128,10 +128,14 @@ export function OmoModelsScreen({ theme, layout }: PluginSurfaceProps) {
 
   if (editing) {
     const role = roleFor(editing);
+    const section = state.sections.find((entry) => entry.id === editing.section);
+    const roleCount = section?.roles.length ?? 0;
     const currentModel =
       editing.kind === "model_profile"
         ? profileFor(editing)
-        : (role?.model ?? role?.fallbackModels[0] ?? null);
+        : editing.kind === "all"
+          ? null
+          : (role?.model ?? role?.fallbackModels[0] ?? null);
 
     const needle = modelQuery.trim().toLowerCase();
     const matches = needle
@@ -148,25 +152,39 @@ export function OmoModelsScreen({ theme, layout }: PluginSurfaceProps) {
       value: level,
     }));
 
-    const title = editing.kind === "model_profile" ? "model_profile" : editing.name;
+    const title =
+      editing.kind === "model_profile"
+        ? "model_profile"
+        : editing.kind === "all"
+          ? `All roles in ${editing.sectionLabel}`
+          : editing.name;
 
     return (
       <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
         <View style={{ gap: 4 }}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.path}>
-            {editing.sectionLabel} · {editing.kind}
+            {editing.sectionLabel} ·{" "}
+            {editing.kind === "all" ? `${roleCount} roles` : editing.kind}
           </Text>
         </View>
 
-        <SettingsSection title="Current">
-          <SettingsCard>
-            <SettingsRow label="Model" hint={currentModel ?? "unset"} />
-            {editing.kind !== "model_profile" ? (
-              <SettingsRow label="Reasoning" hint={role?.reasoning ?? "unset"} />
-            ) : null}
-          </SettingsCard>
-        </SettingsSection>
+        {editing.kind === "all" ? (
+          <SettingsSection title="Scope">
+            <SettingsCard>
+              <SettingsRow label="Roles affected" hint={`${roleCount} in ${editing.sectionLabel}`} />
+            </SettingsCard>
+          </SettingsSection>
+        ) : (
+          <SettingsSection title="Current">
+            <SettingsCard>
+              <SettingsRow label="Model" hint={currentModel ?? "unset"} />
+              {editing.kind !== "model_profile" ? (
+                <SettingsRow label="Reasoning" hint={role?.reasoning ?? "unset"} />
+              ) : null}
+            </SettingsCard>
+          </SettingsSection>
+        )}
 
         <SettingsSection title="Model">
           <SettingsCard>
@@ -206,23 +224,41 @@ export function OmoModelsScreen({ theme, layout }: PluginSurfaceProps) {
         </SettingsSection>
 
         {editing.kind !== "model_profile" ? (
-          <SettingsSection title="Reasoning">
+          <SettingsSection title={editing.kind === "all" ? "Reasoning (optional)" : "Reasoning"}>
             <SettingsCard>
+              {editing.kind === "all" ? (
+                <SettingsRow
+                  label="Pick a level to apply to every role, or leave alone to keep per-role values"
+                />
+              ) : null}
               <SettingsSelect
                 label="Reasoning"
-                hint={role?.reasoning ?? "unset"}
-                value={role?.reasoning ?? state.reasoningLevels[0] ?? ""}
-                options={reasoningOptions}
+                hint={
+                  editing.kind === "all"
+                    ? "unchanged unless you pick a level"
+                    : (role?.reasoning ?? "unset")
+                }
+                value={
+                  editing.kind === "all"
+                    ? ""
+                    : (role?.reasoning ?? state.reasoningLevels[0] ?? "")
+                }
+                options={
+                  editing.kind === "all"
+                    ? [{ label: "(keep per-role)", value: "" }, ...reasoningOptions]
+                    : reasoningOptions
+                }
                 disabled={apply.isPending}
-                onValueChange={(reasoning) =>
+                onValueChange={(reasoning) => {
+                  if (reasoning === "") return;
                   apply.mutate({
                     section: editing.section,
                     kind: editing.kind,
                     name: editing.name,
                     model: null,
                     reasoning,
-                  })
-                }
+                  });
+                }}
               />
             </SettingsCard>
           </SettingsSection>
@@ -276,6 +312,23 @@ export function OmoModelsScreen({ theme, layout }: PluginSurfaceProps) {
                         section: section.id,
                         sectionLabel,
                         kind: "model_profile",
+                        name: "",
+                      })
+                    }
+                  />
+                ) : null}
+
+                {section.roles.length > 0 ? (
+                  <SettingsAction
+                    label="Set all roles"
+                    hint={`one model for all ${section.roles.length} roles in this section`}
+                    actionLabel="Edit"
+                    disabled={apply.isPending}
+                    onPress={() =>
+                      openEditor({
+                        section: section.id,
+                        sectionLabel,
+                        kind: "all",
                         name: "",
                       })
                     }
